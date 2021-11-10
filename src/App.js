@@ -26,9 +26,10 @@ class Calculator extends Component {
     text: "",
     number: 0,
     calState: "",
+    clearFlag: false,
   };
 
-  doCalculate = (currentState, nowNumber) => {
+  doCalculate = (nowNumber) => {
     const { number, calState } = this.state;
     let newNumber = nowNumber;
     switch (calState) {
@@ -51,56 +52,78 @@ class Calculator extends Component {
         break;
     }
 
-    console.log(newNumber);
-
     return newNumber;
   };
 
   handleClick = (target) => {
-    const { text, number, calState } = this.state;
+    const { text, number, calState, clearFlag } = this.state;
     const { doCalculate } = this;
     const nowNumber =
       text.length > 0 ? parseFloat(text.replace(/^\./, "0.")) : 0;
-    let newText = "";
+    let newText = text;
     let newCalState = "";
     let newNumber = 0;
+    let newClearFlag = clearFlag;
 
     switch (target) {
       case "+":
-        newNumber = doCalculate("plus", nowNumber);
+        newNumber = doCalculate(nowNumber);
         newCalState = "plus";
+        newClearFlag=true;
         break;
       case "-":
-        newNumber = doCalculate("minus", nowNumber);
+        newNumber = doCalculate(nowNumber);
         newCalState = "minus";
+        newClearFlag=true;
         break;
       case "*":
-        newNumber = doCalculate("time", nowNumber);
+        newNumber = doCalculate(nowNumber);
         newCalState = "time";
+        newClearFlag=true;
         break;
       case "/":
-        newNumber = doCalculate("divide", nowNumber);
+        newNumber = doCalculate(nowNumber);
         newCalState = "divide";
+        newClearFlag=true;
         break;
       case "DEL":
         newText = text.slice(0, -1).replace(/\.$/, "");
         break;
       case "RESET":
         newText = "";
-        newNumber = doCalculate("reset", 0);
+        newNumber = doCalculate( 0);
         break;
       case "=":
-        newNumber = doCalculate("equals", nowNumber);
-        newText = newNumber.toString();
+        newNumber = doCalculate(nowNumber);
+        const tmp = newNumber.toString();
+        if (tmp === "NaN") {
+          newText = "Error";
+        } else if (tmp.match(/\./)) {
+          newText = tmp.slice(0, 8);
+        } else if (tmp.length > 8) {
+          newText = "Exceed";
+        } else {
+          newText = tmp;
+        }
+
         newCalState = "equals";
         break;
       default:
-        if (text.length === 1 && text.length[0] === 0 && target === "0") {
+        if (clearFlag) {
+          newText = target;
+          newClearFlag = !clearFlag;
+        } else if (
+          text.length === 1 &&
+          text.length[0] === 0 &&
+          target === "0"
+        ) {
           newText = "";
         } else if (calState === "equals") {
           newText = target;
-        } else {
+        } else if (text.length < 8) {
           newText = text + target;
+        } else {
+          newText = text;
         }
         newCalState = calState === "equals" ? "" : calState;
         newNumber = calState === "equals" ? 0 : number;
@@ -110,6 +133,7 @@ class Calculator extends Component {
       text: newText,
       number: newNumber,
       calState: newCalState,
+      clearFlag: newClearFlag
     });
   };
 
@@ -119,12 +143,16 @@ class Calculator extends Component {
     return (
       <div className="calculator__body">
         {btnList.map((target) => {
+          const classDark =
+            parseInt(target) || parseInt(target) === 0 || target === "="
+              ? "calculator--dark"
+              : "";
           const classLarge =
             target === "RESET" || target === "=" ? "calculator--large" : "";
           return (
             <div
               key={target}
-              className={`calculator__btn ${classLarge}`}
+              className={`calculator__btn ${classLarge} ${classDark}`}
               onClick={() => {
                 handleClick(target);
               }}
@@ -138,10 +166,11 @@ class Calculator extends Component {
   };
 
   render() {
-    const { text } = this.state;
+    const { text, clearFlag } = this.state;
     const { renderBtn } = this;
     return (
       <div className="App">
+          {clearFlag}
         <div className="calculator">
           <div className="calculator__input"> {text} </div>
           {renderBtn()}
